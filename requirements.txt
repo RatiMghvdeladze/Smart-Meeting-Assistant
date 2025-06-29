@@ -24,7 +24,6 @@ torchvision
 pyannote.audio
 
 # --- Helper Libraries ---
-
 # For numerical operations, especially vector math in semantic search
 numpy
 scikit-learn
