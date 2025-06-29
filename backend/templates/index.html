@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KIU Smart Meeting Assistant - WhisperX Enhanced</title>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #28a745;
+            --highlight-color: #fff2a8;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        }
+        .container { max-width: 1200px; margin: 20px auto; }
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .header { text-align: center; }
+        .header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .section-title { font-size: 1.5em; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .upload-area {
+            border: 3px dashed var(--primary-color);
+            border-radius: 15px; padding: 40px; text-align: center; cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .upload-area.has-file { border-color: var(--success-color); background: rgba(40, 167, 69, 0.05); }
+        .file-input { display: none; }
+
+        /* Speaker Settings Styles */
+        .speaker-settings {
+            background: rgba(102, 126, 234, 0.05);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .speaker-settings h4 {
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+        .settings-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .setting-group label {
+            font-weight: 500;
+            color: #333;
+        }
+        .setting-group input {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            width: 80px;
+        }
+        .speaker-stats {
+            background: rgba(40, 167, 69, 0.05);
+            border: 1px solid rgba(40, 167, 69, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .speaker-stats h5 {
+            color: var(--success-color);
+            margin-bottom: 10px;
+        }
+        .speaker-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0;
+        }
+        .speaker-name {
+            width: 80px;
+            font-weight: 500;
+        }
+        .speaker-progress {
+            flex: 1;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .speaker-fill {
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        .speaker-percentage {
+            width: 50px;
+            text-align: right;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white; border: none; padding: 12px 25px; border-radius: 25px; cursor: pointer;
+            font-size: 1em; margin: 10px 5px; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-success { background: linear-gradient(135deg, var(--success-color), #20c997); }
+        .step-tracker { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin: 20px 0; }
+        .step { display: flex; flex-direction: column; text-align: center; gap: 10px; padding: 15px; border-radius: 10px; opacity: 0.5; transition: all 0.3s ease-in-out; }
+        .step.step-active { opacity: 1; transform: scale(1.05); background: rgba(102, 126, 234, 0.1); }
+        .step.step-completed { opacity: 1; color: var(--success-color); }
+        .step-icon { font-size: 2em; }
+        .result-item { margin-bottom: 15px; padding: 20px; background: rgba(0,0,0,0.02); border-radius: 10px; border-left: 4px solid var(--primary-color); }
+        .result-item p.context { font-style: italic; color: #555; background: #f8f9fa; padding: 10px; border-radius: 5px; }
+        .result-item p.context mark { background-color: var(--highlight-color); border-radius: 3px; padding: 0 2px; }
+        .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+        .search-bar input { flex-grow: 1; padding: 12px 15px; border: 2px solid #ddd; border-radius: 25px; font-size: 1em; }
+        .hidden { display: none; }
+        .transcript-container { max-height: 400px; overflow-y: auto; background: rgba(0,0,0,0.03); padding: 15px 20px; border-radius: 8px; }
+        .transcript-line { line-height: 1.7; color: #343a40; padding: 4px 0; }
+        .transcript-line strong { color: var(--secondary-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="card header">
+            <h1>🚀 KIU Smart Meeting Assistant</h1>
+            <p>Enhanced with WhisperX Speaker Identification</p>
+        </header>
+        <main>
+            <div id="main-view">
+                <section class="card">
+                    <h2 class="section-title"><span>🎙️</span>1. Process a New Meeting</h2>
+                    <div class="upload-area" id="uploadArea">
+                        <h3>Drop audio file here or click to browse</h3>
+                        <p>Supports MP3, WAV, M4A formats</p>
+                    </div>
+                    <input type="file" id="fileInput" class="file-input" accept=".mp3,.wav,.m4a">
+
+                    <!-- Speaker Settings -->
+                    <div class="speaker-settings">
+                        <h4>🎯 Speaker Identification Settings (Optional)</h4>
+                        <div class="settings-row">
+                            <div class="setting-group">
+                                <label for="minSpeakers">Minimum Speakers:</label>
+                                <input type="number" id="minSpeakers" min="1" max="20" placeholder="Auto">
+                            </div>
+                            <div class="setting-group">
+                                <label for="maxSpeakers">Maximum Speakers:</label>
+                                <input type="number" id="maxSpeakers" min="1" max="20" placeholder="Auto">
+                            </div>
+                            <div style="margin-left: 20px;">
+                                <small style="color: #666;">
+                                    💡 Leave blank for automatic detection<br>
+                                    Hint: Set if you know the expected number of participants
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="text-align:center;">
+                        <button class="btn" id="uploadBtn" disabled>🚀 Process Meeting</button>
+                    </div>
+                </section>
+                <section class="card">
+                     <h2 class="section-title"><span>📖</span>2. Access Organizational Knowledge</h2>
+                     <div class="search-bar">
+                         <input type="search" id="searchInput" placeholder="Search in English or Georgian...">
+                         <button class="btn" id="searchBtn">Search</button>
+                     </div>
+                     <button class="btn btn-success" id="viewAllBtn">📂 View All Meetings</button>
+                </section>
+            </div>
+            <div id="processing-view" class="card hidden">
+                <h2 class="section-title"><span>⚙️</span>Processing Your Meeting...</h2>
+                <p id="processing-filename" style="text-align:center;"></p>
+                <div class="step-tracker">
+                    <div class="step" id="step1"><span class="step-icon">📑</span><div><strong>Transcription</strong><br><small>WhisperX + Speakers</small></div></div>
+                    <div class="step" id="step2"><span class="step-icon">✨</span><div><strong>AI Summary</strong><br><small>Context-aware</small></div></div>
+                    <div class="step" id="step3"><span class="step-icon">🔍</span><div><strong>Embedding</strong><br><small>Semantic search</small></div></div>
+                    <div class="step" id="step4"><span class="step-icon">🎨</span><div><strong>Visualization</strong><br><small>Visual summary</small></div></div>
+                    <div class="step" id="step5"><span class="step-icon">✅</span><div><strong>Outcomes</strong><br><small>Actions & decisions</small></div></div>
+                </div>
+
+                <!-- Processing Status -->
+                <div id="processing-status" style="text-align: center; margin-top: 20px; color: #666;">
+                    <p id="status-text">Initializing...</p>
+                    <div id="speaker-info" style="margin-top: 10px; display: none;">
+                        <p>🎯 <span id="speaker-count">0</span> speakers detected</p>
+                    </div>
+                </div>
+            </div>
+            <div id="results-view" class="card hidden"></div>
+        </main>
+    </div>
+
+<script>
+    let currentTaskId = null;
+    let statusInterval = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        uploadArea.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileSelection);
+        document.getElementById('uploadBtn').addEventListener('click', uploadFile);
+        document.getElementById('searchBtn').addEventListener('click', searchMeetings);
+        document.getElementById('viewAllBtn').addEventListener('click', viewAllMeetings);
+        document.getElementById('searchInput').addEventListener('keyup', e => e.key === 'Enter' && searchMeetings());
+
+        // Validate speaker settings
+        document.getElementById('minSpeakers').addEventListener('change', validateSpeakerSettings);
+        document.getElementById('maxSpeakers').addEventListener('change', validateSpeakerSettings);
+    });
+
+    const showView = (viewId) => {
+        ['main-view', 'processing-view', 'results-view'].forEach(id => {
+            document.getElementById(id).classList.toggle('hidden', id !== viewId);
+        });
+    };
+
+    const showResultsView = (innerHTML) => {
+        document.getElementById('results-view').innerHTML = innerHTML;
+        showView('results-view');
+    };
+
+    function validateSpeakerSettings() {
+        const minSpeakers = parseInt(document.getElementById('minSpeakers').value);
+        const maxSpeakers = parseInt(document.getElementById('maxSpeakers').value);
+
+        if (minSpeakers && maxSpeakers && minSpeakers > maxSpeakers) {
+            document.getElementById('maxSpeakers').value = minSpeakers;
+        }
+    }
+
+    function handleFileSelection() {
+        const file = document.getElementById('fileInput').files[0];
+        if (!file) return;
+
+        document.getElementById('uploadArea').classList.add('has-file');
+        document.getElementById('uploadArea').innerHTML = `
+            <h3>✅ Selected: ${file.name}</h3>
+            <p>Size: ${(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+        `;
+        document.getElementById('uploadBtn').disabled = false;
+    }
+
+    async function uploadFile() {
+        const file = document.getElementById('fileInput').files[0];
+        if (!file) return;
+
+        // Get speaker settings
+        const minSpeakers = document.getElementById('minSpeakers').value;
+        const maxSpeakers = document.getElementById('maxSpeakers').value;
+
+        document.getElementById('processing-filename').textContent = `Processing: ${file.name}`;
+        document.getElementById('status-text').textContent = 'Uploading file...';
+        showView('processing-view');
+        resetStepStyles();
+
+        const formData = new FormData();
+        formData.append('file', file);
+        if (minSpeakers) formData.append('min_speakers', minSpeakers);
+        if (maxSpeakers) formData.append('max_speakers', maxSpeakers);
+
+        try {
+            const response = await fetch('/upload', { method: 'POST', body: formData });
+            const result = await response.json();
+            if (result.success) {
+                currentTaskId = result.task_id;
+                document.getElementById('status-text').textContent = 'Upload successful, starting processing...';
+                startStatusPolling();
+            } else {
+                showError(result.error || 'Upload failed.');
+            }
+        } catch (e) {
+            showError(`Network error: ${e.message}`);
+        }
+    }
+
+    function startStatusPolling() {
+        if (statusInterval) clearInterval(statusInterval);
+        statusInterval = setInterval(async () => {
+            if (!currentTaskId) { clearInterval(statusInterval); return; }
+            try {
+                const response = await fetch(`/status/${currentTaskId}`);
+                const status = await response.json();
+                if (status.status === 'not_found') return;
+                updateProcessingStatus(status);
+                if (status.status === 'completed' || status.status === 'error') {
+                    clearInterval(statusInterval);
+                }
+            } catch (e) {
+                console.error('Status polling error:', e);
+            }
+        }, 2000);
+    }
+
+    function updateProcessingStatus(status) {
+        if (status.status === 'error') {
+            showError(status.message);
+            return;
+        }
+
+        // Update status text
+        const statusMessages = {
+            'transcribing': 'Transcribing audio with WhisperX...',
+            'summarizing': 'Generating AI summary...',
+            'embedding': 'Creating semantic embeddings...',
+            'visualizing': 'Creating visual summary...',
+            'extracting_actions': 'Extracting action items...',
+            'saving': 'Saving to database...',
+            'done': 'Processing complete!'
+        };
+
+        document.getElementById('status-text').textContent = statusMessages[status.step] || 'Processing...';
+
+        // Show speaker info if available
+        if (status.speaker_count) {
+            document.getElementById('speaker-info').style.display = 'block';
+            document.getElementById('speaker-count').textContent = status.speaker_count;
+        }
+
+        // Update step tracker
+        const stepOrder = ['transcribing', 'summarizing', 'embedding', 'visualizing', 'extracting_actions', 'saving', 'done'];
+        const stepIdMap = {
+            'transcribing': 'step1',
+            'summarizing': 'step2',
+            'embedding': 'step3',
+            'visualizing': 'step4',
+            'extracting_actions': 'step5',
+            'saving': 'step5',
+            'done': 'step5'
+        };
+        const currentStepIndex = stepOrder.indexOf(status.step);
+
+        // Reset all steps
+        Object.values(stepIdMap).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('step-active', 'step-completed');
+        });
+
+        // Mark completed steps
+        for (let i = 0; i < 5; i++) {
+            const stepEl = document.getElementById(`step${i+1}`);
+            const stepKey = Object.keys(stepIdMap).find(k => stepIdMap[k] === `step${i+1}`);
+            if (stepOrder.indexOf(stepKey) < currentStepIndex) {
+                stepEl?.classList.add('step-completed');
+            }
+        }
+
+        // Mark current step as active
+        document.getElementById(stepIdMap[status.step])?.classList.add('step-active');
+
+        if (status.status === 'completed') {
+            document.querySelectorAll('.step').forEach(el => el.classList.add('step-completed'));
+            setTimeout(() => viewMeeting(status.meeting_id), 1000);
+        }
+    }
+
+    async function searchMeetings() {
+        const query = document.getElementById('searchInput').value;
+        if (!query) return;
+        showResultsView(`<h3 style="text-align:center;">Searching for "${query}"...</h3>`);
+        try {
+            const response = await fetch('/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query })
+            });
+            const data = await response.json();
+            displayMeetingList(data.results, `Search Results for "${query}"`, query, data.translated_query);
+        } catch (e) {
+            showError(`Search failed: ${e.message}`);
+        }
+    }
+
+    async function viewAllMeetings() {
+        showResultsView(`<h3 style="text-align:center;">Fetching meetings...</h3>`);
+        try {
+            const response = await fetch('/meetings');
+            const data = await response.json();
+            displayMeetingList(data, 'All Meetings');
+        } catch (e) {
+            showError(`Failed to load meetings: ${e.message}`);
+        }
+    }
+
+    function displayMeetingList(meetings, title, original_query = '', translated_query = null) {
+        let titleHtml = `<h3>${title}</h3>`;
+        if (translated_query) {
+            titleHtml += `<p style="text-align:center; color: #555;">Translated to English as: "<strong>${translated_query}</strong>"</p>`;
+        }
+
+        let contentHtml = !meetings?.length ? `<p>No meetings found.</p>` : meetings.map(m => {
+            const highlight_term = translated_query || original_query;
+            const contextHtml = m.best_chunk
+                ? `<p class="context"><strong>Relevant Snippet:</strong> ...${m.best_chunk.replace(new RegExp(highlight_term, 'gi'), match => `<mark>${match}</mark>`)}...</p>`
+                : `<p style="margin-top: 8px; font-style: italic;">${m.summary || 'No summary available.'}...</p>`;
+
+            // Add speaker info badge
+            const speakerBadge = m.unique_speakers ?
+                `<span style="background: var(--primary-color); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin-left: 10px;">👥 ${m.unique_speakers} speakers</span>` : '';
+
+            return `
+                <div class="result-item" style="cursor: pointer;" onclick="viewMeeting(${m.id})">
+                    <h4>${m.title}${speakerBadge}</h4>
+                    <p><small>Created: ${new Date(m.created_at).toLocaleDateString()}${m.similarity ? ` | Similarity: ${m.similarity} (${m.search_type})` : ''}</small></p>
+                    ${contextHtml}
+                </div>`;
+        }).join('');
+
+        showResultsView(`${titleHtml}${contentHtml}<div style="margin-top: 20px;"><button class="btn" onclick="showView('main-view')">⬅️ Back</button></div>`);
+    }
+
+    async function viewMeeting(meetingId) {
+        showResultsView(`<h3 style="text-align:center;">Fetching meeting ${meetingId}...</h3>`);
+        try {
+            const response = await fetch(`/meetings/${meetingId}`);
+            const meeting = await response.json();
+
+            const renderList = (title, icon, items, formatter) => !items?.length ? '' : `<div class="result-item"><h4><span>${icon}</span> ${title}</h4><ul>${items.map(formatter).join('')}</ul></div>`;
+            const actionItemsHtml = renderList('Action Items', '✅', meeting.action_items, item => `<li><strong>${item.task}</strong> (Assignee: ${item.assignee || 'N/A'})</li>`);
+            const decisionsHtml = renderList('Decisions Made', '⚖️', meeting.decisions, item => `<li><strong>${item.decision_summary}</strong> (Owner: ${item.owner || 'N/A'})</li>`);
+            const visualSummaryHtml = meeting.visual_summary_url ? `<div class="result-item"><h4><span>🎨</span> Visual Summary</h4><img src="${meeting.visual_summary_url}" style="width:100%; border-radius:10px;"/></div>` : '';
+
+            // Enhanced speaker statistics
+            const speakerStatsHtml = meeting.speaker_stats && Object.keys(meeting.speaker_stats).length > 0 ?
+                `<div class="result-item">
+                    <h4><span>👥</span> Speaker Analysis (${meeting.unique_speakers} participants)</h4>
+                    <div class="speaker-stats">
+                        ${Object.entries(meeting.speaker_stats)
+                            .sort(([,a], [,b]) => b.percentage - a.percentage)
+                            .map(([speaker, stats]) => `
+                                <div class="speaker-bar">
+                                    <div class="speaker-name">${speaker}</div>
+                                    <div class="speaker-progress">
+                                        <div class="speaker-fill" style="width: ${stats.percentage}%"></div>
+                                    </div>
+                                    <div class="speaker-percentage">${stats.percentage.toFixed(1)}%</div>
+                                </div>
+                                <div style="font-size: 0.9em; color: #666; margin-left: 90px; margin-bottom: 10px;">
+                                    ${Math.round(stats.duration / 60)}m ${Math.round(stats.duration % 60)}s • ${stats.segments} segments • ${stats.words} words
+                                </div>
+                            `).join('')}
+                    </div>
+                </div>` : '';
+
+            const transcriptHtml = meeting.transcript_segments ?
+                `<div class="result-item">
+                    <h4><span>📖</span> Full Transcript${meeting.unique_speakers ? ` (${meeting.unique_speakers} speakers)` : ''}</h4>
+                    <div class="transcript-container">
+                        ${meeting.transcript_segments.map(s =>
+                            `<p class="transcript-line">
+                                <strong>${s.speaker || 'SPEAKER'}:</strong> ${s.text.trim()}
+                                ${s.start ? `<small style="color: #999; margin-left: 10px;">[${Math.round(s.start)}s]</small>` : ''}
+                            </p>`
+                        ).join('')}
+                    </div>
+                </div>` : '';
+
+            const recommendationsHtml = `<div class="result-item" id="recommendations"><h4><span>🔗</span> Related Meetings</h4><p>Loading recommendations...</p></div>`;
+
+            const detailsHtml = `
+                <h2>${meeting.title}</h2>
+                <p><small>Created: ${new Date(meeting.created_at).toLocaleString()}</small></p>
+                <div class="result-item"><h4><span>✨</span> AI Summary</h4><p>${meeting.summary}</p></div>
+                ${speakerStatsHtml}
+                ${actionItemsHtml}${decisionsHtml}${visualSummaryHtml}${transcriptHtml}
+                ${recommendationsHtml}
+                <div style="margin-top: 20px;">
+                    <button class="btn" onclick="viewAllMeetings()">⬅️ All Meetings</button>
+                    <button class="btn btn-success" onclick="showView('main-view')">➕ New</button>
+                </div>`;
+            showResultsView(detailsHtml);
+
+            // Fetch recommendations
+            fetchAndRenderRecommendations(meetingId);
+        } catch (e) {
+            showError(`Failed to load meeting: ${e.message}`);
+        }
+    }
+
+    async function fetchAndRenderRecommendations(meetingId) {
+        try {
+            const response = await fetch(`/meetings/${meetingId}/similar`);
+            const recommendations = await response.json();
+            const container = document.getElementById('recommendations');
+            if (!recommendations || recommendations.length === 0) {
+                container.innerHTML = `<h4><span>🔗</span> Related Meetings</h4><p>No similar meetings found.</p>`;
+            } else {
+                let recsHtml = '<ul>';
+                recommendations.forEach(rec => {
+                    const speakerBadge = rec.unique_speakers ? ` (👥 ${rec.unique_speakers})` : '';
+                    recsHtml += `<li><a href="#" onclick="event.preventDefault(); viewMeeting(${rec.id})">${rec.title}${speakerBadge}</a> <small>(Similarity: ${rec.similarity})</small></li>`;
+                });
+                recsHtml += '</ul>';
+                container.innerHTML = `<h4><span>🔗</span> Related Meetings</h4>${recsHtml}`;
+            }
+        } catch (e) {
+            const container = document.getElementById('recommendations');
+            if (container) {
+                container.innerHTML = `<h4><span>🔗</span> Related Meetings</h4><p>Could not load recommendations.</p>`;
+            }
+        }
+    }
+
+    function resetStepStyles() {
+        document.querySelectorAll('.step').forEach(el => el.classList.remove('step-active', 'step-completed'));
+    }
+
+    function showError(message) {
+        showResultsView(`<div style="background:#f8d7da;color:#721c24;padding:20px;border-radius:15px;"><h3>❌ Error</h3><p>${message}</p><button class="btn" onclick="showView('main-view')">Return Home</button></div>`);
+    }
+</script>
+</body>
+</html>

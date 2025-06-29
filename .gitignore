@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pkl
+
+# Virtual environments
+venv/
+ENV/
+.env/
+.venv/
+
+# Environment variables
+.env
+.env.*
+
+# Jupyter and notebooks
+.ipynb_checkpoints
+*.ipynb
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs and local dev
+*.log
+coverage/
+htmlcov/
+
+# Test and build artifacts
+dist/
+build/
+*.egg-info/
+
+# Node.js frontend (if applicable)
+node_modules/
+
+# Mac-specific files
+.AppleDouble
+.LSOverride
+Icon?
+
+# Windows-specific files
+Desktop.ini
+$RECYCLE.BIN/
