@@ -1,0 +1,37 @@
+# Web Framework
+flask
+
+# OpenAI SDK for all AI models (GPT, DALL-E, Embeddings)
+openai
+
+# For loading environment variables from the .env file
+python-dotenv
+
+# --- Core AI & Audio Processing Dependencies ---
+
+# For advanced transcription and speaker identification
+# Installs directly from the GitHub repository to ensure the latest version
+git+https://github.com/m-bain/whisperx.git
+
+# Deep learning framework required by WhisperX and Pyannote
+# Note: For GPU support, a specific version might be required.
+# See https://pytorch.org/get-started/locally/
+torch
+torchaudio
+torchvision
+
+# Speaker diarization models used by WhisperX
+pyannote.audio
+
+# --- Helper Libraries ---
+
+# For numerical operations, especially vector math in semantic search
+numpy
+scikit-learn
+
+# For making HTTP requests to third-party APIs (e.g., Todoist)
+requests
+
+# --- Testing ---
+# The testing framework for running automated checks
+pytest
